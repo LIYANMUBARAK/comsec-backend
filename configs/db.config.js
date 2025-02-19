@@ -6,7 +6,7 @@ const connectDB = ()=>{
 
     mongoose
       .connect(MONGO_URI, {dbName:"comsec"})
-      .then(() => console.log("Connected to MongoDB successfully!"))
+      .then(() => console.log("Connected to MongoDB successfully Now!"))
       .catch((err) => console.error("Could not connect to MongoDB:", err));
 }
 

@@ -57,6 +57,9 @@ app.use("/project", project);
 app.use((req, res, next) => {
   next(createError(404));
 });
+app.get('/test', (req, res) => {
+  res.send('Hello, this is a message from the backend!');
+});
 
 // Error Handler
 app.use((err, req, res, next) => {
