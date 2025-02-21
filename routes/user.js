@@ -34,11 +34,11 @@ const { sendUserInvitationEmail } = require("../configs/invateUser");
 //User registeration
 router.post("/register", async (req, res) => {
   try {
-    const { error } = ValidateRegister(req.body);
-    if (error) {
-      const errorMessages = error.details.map((detail) => detail.message);
-      return res.status(400).json({ errors: errorMessages });
-    }
+    // const { error } = ValidateRegister(req.body);
+    // if (error) {
+    //   const errorMessages = error.details.map((detail) => detail.message);
+    //   return res.status(400).json({ errors: errorMessages });
+    // }
 
     const { name, roles, email, password, mobile } = req.body;
 
@@ -56,7 +56,7 @@ router.post("/register", async (req, res) => {
       roles,
       email,
       password: hashedPassword,
-      mobile_number: mobile,
+      mobile_number: mobile || '',
     });
 
     await user.save();
@@ -70,6 +70,26 @@ router.post("/register", async (req, res) => {
 function generateOtp(){
   return crypto.randomInt(100000, 999999).toString();
 }
+
+router.get("/getUser/:id",async(req,res)=>{
+  try{
+    const userId = req.params.id;
+
+    const user = await User.findById(userId);
+    
+    if(!user){
+      return res.status(404).json({error:"User not found"});
+    }
+    console.log("user bro",user)
+
+    res.status(201).json(user)
+  }
+  catch(error){
+    return res.status(500).json({error:"error while feteching"});
+  }
+})
+
+
 
 // login 
 router.post("/login", async (req, res) => {
@@ -309,7 +329,7 @@ router.post("/inviteUser", async (req, res) => {
       name: `${firstName} ${lastName}`,
       email,
       password: hashedPassword,
-      roles: "Employee",
+      roles: "Company Secretary",
       is_Verified: true,
       is_Invited: true,
       active: "0",
@@ -377,12 +397,12 @@ router.patch("/update/:id", async (req, res) => {
 
     const updateData = {
       email,
-      name: fullName // Update the name field in the database
+      name: fullName
     };
 
-    // Only update password if provided
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Only hash and update password if provided
     if (password) {
+      const hashedPassword = await bcrypt.hash(password, 10);
       updateData.password = hashedPassword;
     }
 
@@ -401,26 +421,32 @@ router.patch("/update/:id", async (req, res) => {
       email: updatedUser.email
     };
 
+    // Send email if email was changed
+    if (email !== currentUser.email) {
+      try {
+        await sendUserInvitationEmail(
+          email, // Use new email
+          firstName,
+          lastName,
+          password || '' // Pass the new password if provided, empty string if not
+        );
+        console.log("Invitation email sent successfully");
+      } catch (emailError) {
+        console.error("Error sending invitation email:", emailError);
+        // Continue with the response even if email fails
+      }
+    }
+
     res.status(200).json({ 
       message: "User updated successfully.",
       user: responseUser
     });
 
-    // Only send email if email was changed
-    if (email !== currentUser.email) {
-      await sendUserInvitationEmail(
-        updatedUser.email,
-        firstName,
-        lastName,
-        password || currentUser.password
-      );
-    }
   } catch (error) {
     console.error("Error updating user:", error);
     res.status(500).json({ message: "Internal Server Error." });
   }
 });
-
 router.delete("/deleteInvitedUser/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -437,7 +463,75 @@ router.delete("/deleteInvitedUser/:id", async (req, res) => {
     res.status(500).json({ message: "Internal Server Error." });
   }
 });
+const generateSecurePassword = (length = 12) => {
+  const uppercase = 'ABCDEFGHJKLMNPQRSTUVWXYZ';  // Excluding I and O
+  const lowercase = 'abcdefghijkmnpqrstuvwxyz';  // Excluding l and o
+  const numbers = '23456789';  // Excluding 0 and 1
+  const symbols = '!@#$%^&*';
+  
+  const allChars = uppercase + lowercase + numbers + symbols;
+  let password = '';
+  
+  // Ensure at least one character from each category
+  password += uppercase[Math.floor(Math.random() * uppercase.length)];
+  password += lowercase[Math.floor(Math.random() * lowercase.length)];
+  password += numbers[Math.floor(Math.random() * numbers.length)];
+  password += symbols[Math.floor(Math.random() * symbols.length)];
+  
+  // Fill the rest of the password
+  for (let i = password.length; i < length; i++) {
+    password += allChars[Math.floor(Math.random() * allChars.length)];
+  }
+  
+  // Shuffle the password
+  return password.split('').sort(() => Math.random() - 0.5).join('');
+};
 
+router.post("/forgot-password", async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required." });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Generate new secure password
+    const newPassword = generateSecurePassword(12);
+    
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update user with new hashed password
+    user.password = hashedPassword;
+    await user.save();
+
+    // Get user's name parts for email
+    const nameParts = user.name.split(' ');
+    const firstName = nameParts[0];
+    const lastName = nameParts.slice(1).join(' ');
+
+    // Send the new unhashed password via email
+    await sendUserInvitationEmail(
+      email,
+      firstName,
+      lastName,
+      newPassword // Send the unhashed password in email
+    );
+
+    res.status(200).json({ 
+      message: "New password has been sent to your email."
+    });
+
+  } catch (error) {
+    console.error("Error in forgot password:", error);
+    res.status(500).json({ message: "Internal Server Error." });
+  }
+});
 
 // router.post("/createReg", async (req, res) => {
 //   try {

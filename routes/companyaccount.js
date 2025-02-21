@@ -562,7 +562,6 @@ router.post("/companySecretary", async (req, res) => {
 
     if (
       !tcspLicenseNo ||
-      !tcspReason ||
       !type ||
       !surname ||
       !name ||
@@ -586,7 +585,7 @@ router.post("/companySecretary", async (req, res) => {
 
     const newCompanySecretary = new CompanySecretary({
       tcspLicenseNo,
-      tcspReason,
+      tcspReason: tcspReason || "",
       type,
       surname,
       name,

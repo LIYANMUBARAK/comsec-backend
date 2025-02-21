@@ -9,8 +9,8 @@ function sendOtpEmail(email, otp){
       port: 465,
       secure: true,
       auth: {
-        user: EMAIL_USER,
-        pass: EMAIL_PASS,
+        user: 'testtdemoo11111@gmail.com',
+        pass: 'wikvaxsgqyebphvh',
       },
     });
 

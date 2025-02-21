@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const companySecretarySchema = new mongoose.Schema({
   tcspLicenseNo: { type: String, required: true },
-  tcspReason: { type: String, required: true },
+  tcspReason: { type: String },
   type: { type: String, required: true }, 
   surname: { type: String, required: true },
   name: { type: String, required: true },
