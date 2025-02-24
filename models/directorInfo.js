@@ -4,7 +4,9 @@ const directorSchema = new mongoose.Schema(
   {
     surname: { type: String, required: true },
     name: { type: String, required: true },
-    chineeseName: { type: String, required: true },
+    chineeseName: { type: String },
+    NNC1Singed: { type: Boolean,default:false },
+    NNC1From: { type: String },
     idNo: { type: String, required: true, unique: true },
     idProof: { type: String, required: true },
     type: { type: String, required: true },

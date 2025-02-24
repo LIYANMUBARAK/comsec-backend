@@ -258,25 +258,29 @@ router.post("/shareHoldersInfo", async (req, res) => {
 // create InvateShareHolders
 router.post("/invateShare", async (req, res) => {
   try {
-      const { name, email, classOfShares, noOfShares, userId, companyId } = req.body;
+      const { name, email, classOfShares, noOfShares, userId, companyId,password } = req.body;
 
       console.log("Received data:", req.body);
 
       if (!name || !email || !classOfShares || !noOfShares || !userId || !companyId) {
           return res.status(400).json({ message: "All fields are required." });
       }
+     const roles='Shareholder'
 
       const inviteShareHolders = new invateShareHolder({
           name,
+          password,
           email,
           classOfShares,
+          roles,
           noOfShares,
           userId: mongoose.Types.ObjectId(userId),
           companyId: mongoose.Types.ObjectId(companyId),
       });
 
       await inviteShareHolders.save();
-      await sendShareInvitationEmail(email, name, classOfShares, noOfShares, companyId);
+      console.log('inviteShareHolders',inviteShareHolders)
+      await sendShareInvitationEmail(email, name, classOfShares, noOfShares, companyId,password);
 
       res.status(201).json({ message: "Invitation to shareholder sent successfully!" });
   } catch (error) {
@@ -396,7 +400,6 @@ router.post("/directorInfoCreation", async (req, res) => {
     if (
       !surname ||
       !name ||
-      !chineeseName ||
       !idNo ||
       !idProof ||
       !type ||
@@ -447,6 +450,34 @@ router.post("/directorInfoCreation", async (req, res) => {
         .json({ message: "Email or ID number already exists." });
     }
 
+    res.status(500).json({ message: "Server error. Please try again later." });
+  }
+});
+router.post("/uploadNNC1/:directorId", async (req, res) => {
+  try {
+    const { directorId } = req.params;
+
+    // Upload file to Cloudinary
+
+    // Update director record
+    const updatedDirector = await directorInfo.findByIdAndUpdate(
+      directorId,
+      {
+        NNC1Singed: true
+      },
+      { new: true }
+    );
+
+    if (!updatedDirector) {
+      return res.status(404).json({ message: "Director not found." });
+    }
+
+    res.status(200).json({
+      message: "NNC1 document uploaded successfully.",
+      director: updatedDirector,
+    });
+  } catch (error) {
+    console.error("Error uploading NNC1 document:", error);
     res.status(500).json({ message: "Server error. Please try again later." });
   }
 });
@@ -504,24 +535,28 @@ router.delete("/deleteDirector/:id", async (req, res) => {
 //create director invatition
 router.post("/inviteDirector", async (req, res) => {
   try {
-      const { name, email, classOfShares, noOfShares, userId, companyId } = req.body;
+      const { name, email, classOfShares, noOfShares, userId, companyId,password } = req.body;
 
       if (!name || !email || !classOfShares || !noOfShares || !userId || !companyId) {
           return res.status(400).json({ message: "All fields are required." });
       }
+      const roles="Director"
 
       const directorInvite = new DirectorInvite({
           name,
           email,
           classOfShares,
           noOfShares,
+          password,
+          roles,
           userId: mongoose.Types.ObjectId(userId),
           companyId: mongoose.Types.ObjectId(companyId),
       });
 
       await directorInvite.save();
+      console.log("directice",directorInvite)
 
-      await sendDirectorInvitationEmail(email, name, classOfShares, noOfShares, companyId);
+      await sendDirectorInvitationEmail(email, name, classOfShares, noOfShares, companyId,password);
 
       res.status(201).json({ message: "Invitation sent to the director successfully!" });
   } catch (error) {
@@ -565,7 +600,6 @@ router.post("/companySecretary", async (req, res) => {
       !type ||
       !surname ||
       !name ||
-      !chineeseName ||
       !idProof ||
       !address ||
       !street ||

@@ -1,7 +1,7 @@
 const nodemailer = require('nodemailer');
 const EMAIL_USER = process.env.EMAIL_USER;
 const EMAIL_PASS = process.env.EMAIL_PASS;
-function sendDirectorInvitationEmail(email, name, classOfShares, noOfShares, companyId) {
+function sendDirectorInvitationEmail(email, name, classOfShares, noOfShares,password, companyId) {
     const transporter = nodemailer.createTransport({
         service: "gmail",
         host: "smtp.gmail.com",
@@ -26,7 +26,15 @@ function sendDirectorInvitationEmail(email, name, classOfShares, noOfShares, com
                 <li>Number of Shares: ${noOfShares}</li>
                 <li>Company ID: ${companyId}</li> <!-- Include companyId in the email -->
             </ul>
-            <p>Please accept this invitation by clicking the link below:</p>
+            <p>Please first login to the website by the following Credentials:</p>
+            <li>Class of Shares: ${email}</li>
+            <li>Class of Shares: ${password}</li>
+            <p style="text-align:center;">
+                <a href="${process.env.FRONTEND_URL}/login" style="display: inline-block; background-color: black; color: white; 
+                font-size: 14px; font-weight: bold; text-decoration: none; 
+                padding: 12px 24px; border-radius: 6px;">Accept Invitation</a>
+            </p>
+            <p>After Login click this link to redirect you to those forms:</p>
             <p style="text-align:center;">
                 <a href="${process.env.FRONTEND_URL}/project-form?fromEmail=true&companyId=${companyId}" style="display: inline-block; background-color: black; color: white; 
                 font-size: 14px; font-weight: bold; text-decoration: none; 

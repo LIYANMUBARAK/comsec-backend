@@ -13,12 +13,13 @@ const shareholdersInfoSchema = new Schema(
     },
     chineeseName: {
       type: String,
-      required: true,
     },
     idNo: {
       type: String,
       required: true,
     },
+    NNC1Singed: { type: Boolean,default:false },
+    NNC1From: { type: String },
     idProof: {
       type: String,
       required: true,

@@ -1,6 +1,7 @@
 const dotenv = require("dotenv");
 const express = require("express");
 const router = express.Router();
+const InviteShareholder = require("../models/invateShareHolder");
 const {
   User,
   Loginuser,
@@ -30,6 +31,7 @@ const { hashPassword } = require("../utils/hashPassword");
 const { sendOtpEmail } = require("../configs/mailer");
 const userOtpVerification = require("../models/otpModels");
 const { sendUserInvitationEmail } = require("../configs/invateUser");
+const DirectorInvite = require("../models/DirectorInvite");
 
 //User registeration
 router.post("/register", async (req, res) => {
@@ -71,23 +73,37 @@ function generateOtp(){
   return crypto.randomInt(100000, 999999).toString();
 }
 
-router.get("/getUser/:id",async(req,res)=>{
-  try{
+router.get("/getUser/:id", async (req, res) => {
+  try {
     const userId = req.params.id;
 
-    const user = await User.findById(userId);
-    
-    if(!user){
-      return res.status(404).json({error:"User not found"});
+    // Check in User collection
+    let user = await User.findById(userId);
+    if (user) {
+      return res.status(200).json(user);
     }
-    console.log("user bro",user)
 
-    res.status(201).json(user)
+    // Check in InviteShareholder collection
+    user = await InviteShareholder.findById(userId);
+    if (user) {
+      return res.status(200).json(user);
+    }
+
+    // Check in DirectorInvite collection
+    user = await DirectorInvite.findById(userId);
+    if (user) {
+      return res.status(200).json(user);
+    }
+
+    // If user not found in any collection
+    return res.status(404).json({ error: "User not found" });
+
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    return res.status(500).json({ error: "Error while fetching" });
   }
-  catch(error){
-    return res.status(500).json({error:"error while feteching"});
-  }
-})
+});
+
 
 
 
@@ -95,6 +111,7 @@ router.get("/getUser/:id",async(req,res)=>{
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log("req.body", req.body);
 
     // Validation
     if (!email || !password) {
@@ -104,75 +121,157 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    // Find user by email
-    const user = await User.findOne({ email: email });
-    console.log('user data in login', user);
+    // Check User Collection First
+    let user = await User.findOne({ email });
+    console.log("User data in login:", user);
 
-    // Check if user exists
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-      console.log("for password",password, user.password)
-      return res.status(400).json({
-        status: "400",
-        message: "Invalid username or password.",
+    if (user && (await bcrypt.compare(password, user.password))) {
+      // Check if the account is active
+      if (user.active !== "0") {
+        return res.status(403).json({
+          status: "403",
+          message: "Your account is inactive. Please contact admin.",
+        });
+      }
+
+      // If user is verified, generate token and login
+      if (user.is_Verified) {
+        const payload = {
+          id: user._id,
+          roles: user.roles,
+          name: user.name,
+          email: user.email,
+        };
+
+        const token = jwt.sign(payload, process.env.SECRET_KEY || "Token", {
+          expiresIn: "30m",
+        });
+
+        res.cookie("token", token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          maxAge: 30 * 60 * 1000,
+          sameSite: "None",
+        });
+
+        console.log("Cookies set in response:", token);
+
+        return res.status(200).json({
+          status: "200",
+          message: "User successfully logged in.",
+          user: {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            roles: user.roles,
+          },
+          token: token,
+        });
+      }
+
+      // If user is not verified, send OTP for authentication
+      const otp = generateOtp();
+
+      // Save OTP in database
+      const otpRecord = new userOtpVerification({ email, otp });
+      await otpRecord.save();
+
+      // Send OTP to email
+      await sendOtpEmail(email, otp);
+
+      return res.status(200).json({
+        status: "200",
+        message: "OTP sent for two-factor authentication.",
+        requiresOtp: true,
+        email,
       });
     }
 
-    // Check if the account is active
-    if (user.active !== "0") {
-      return res.status(403).json({
-        status: "403",
-        message: "Your account is inactive. Please contact admin.",
-      });
-    }
+    // If not found in User, check in InviteShareholder collection
+    let shareholder = await InviteShareholder.findOne({ email });
+    console.log("Shareholder data in login:", shareholder);
 
-    // Check if the user is verified
-    if (user.is_Verified) {
+    if (shareholder && shareholder.password==password) {
       const payload = {
-        id: user._id,
-        roles: user.roles,
-        name: user.name,
-        email: user.email,
+        id: shareholder._id,
+        name: shareholder.name,
+        email: shareholder.email,
+        classOfShares: shareholder.classOfShares,
+        noOfShares: shareholder.noOfShares,
       };
 
-      const token = jwt.sign(payload, process.env.SECRET_KEY || 'Token', { expiresIn: '30m' });
+      const token = jwt.sign(payload, process.env.SECRET_KEY || "Token", {
+        expiresIn: "30m",
+      });
 
       res.cookie("token", token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        maxAge: 30 * 60 * 1000, 
+        maxAge: 30 * 60 * 1000,
         sameSite: "None",
       });
 
-      console.log("Cookies set in response:", token);
+      console.log("Cookies set in response for shareholder:", payload);
+      console.log("Cookies set in response for shareholder:", token);
 
       return res.status(200).json({
         status: "200",
-        message: "User successfully logged in.",
-        user: {
-          id: user._id, 
-          name: user.name,
-          email: user.email,
-          roles: user.roles,
+        message: "Shareholder login successful.",
+        shareholder: {
+          id: shareholder._id,
+          name: shareholder.name,
+          email: shareholder.email,
+          classOfShares: shareholder.classOfShares,
+          noOfShares: shareholder.noOfShares,
         },
-        token: token, 
+        token,
+      });
+    }
+    let directive = await DirectorInvite.findOne({ email });
+    console.log("Shareholder data in login:", shareholder);
+
+    if (directive && directive.password==password) {
+      const payload = {
+        id: directive._id,
+        name: directive.name,
+        email: directive.email,
+        classOfShares: directive.classOfShares,
+        noOfShares: directive.noOfShares,
+      };
+
+      const token = jwt.sign(payload, process.env.SECRET_KEY || "Token", {
+        expiresIn: "30m",
+      });
+
+      res.cookie("token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 30 * 60 * 1000,
+        sameSite: "None",
+      });
+
+      console.log("Cookies set in response for shareholder:", payload);
+      console.log("Cookies set in response for directkve:", directive);
+      console.log("Cookies set in response for shareholder:", token);
+
+      return res.status(200).json({
+        status: "200",
+        message: "Shareholder login successful.",
+        directive: {
+          id: directive._id,
+          name: directive.name,
+          email: directive.email,
+          classOfShares: directive.classOfShares,
+          noOfShares: directive.noOfShares,
+        },
+        token,
       });
     }
 
-    // If user is not verified, generate and send OTP
-    const otp = generateOtp();
-
-    // Save OTP
-    const otpRecord = new userOtpVerification({ email, otp });
-    await otpRecord.save();
-
-    // Send OTP to the user's email
-    await sendOtpEmail(email, otp);
-
-    return res.status(200).json({
-      status: "200",
-      message: "OTP sent for two-factor authentication.",
-      requiresOtp: true,
-      email,
+    // If no match found in either collection
+    return res.status(400).json({
+      status: "400",
+      message: "Invalid username or password.",
     });
 
   } catch (error) {
