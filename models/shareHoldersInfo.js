@@ -4,8 +4,7 @@ const Schema = mongoose.Schema;
 const shareholdersInfoSchema = new Schema(
   {
     surname: {
-      type: String,
-      required: true,
+      type: String
     },
     name: {
       type: String,
@@ -15,8 +14,7 @@ const shareholdersInfoSchema = new Schema(
       type: String,
     },
     idNo: {
-      type: String,
-      required: true,
+      type: String
     },
     NNC1Singed: { type: Boolean,default:false },
     NNC1From: { type: String },
@@ -34,16 +32,13 @@ const shareholdersInfoSchema = new Schema(
       required: true,
     },
     street: {
-      type: String,
-      required: true,
+      type: String
     },
     building: {
-      type: String,
-      required: true,
+      type: String
     },
     district: {
-      type: String,
-      required: true,
+      type: String
     },
     addressProof: {
       type: String,
@@ -54,8 +49,7 @@ const shareholdersInfoSchema = new Schema(
       required: true,
     },
     phone: {
-      type: String,
-      required: true,
+      type: String
     },
     shareDetailsNoOfShares: {
       type: Number,

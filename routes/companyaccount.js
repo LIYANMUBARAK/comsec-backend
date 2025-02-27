@@ -1,6 +1,7 @@
 const express = require("express");
 require("dotenv").config({ path: __dirname + "/.env" });
 const router = express.Router();
+const jwt = require("jsonwebtoken");
 var mongoose = require("mongoose");
 const {
   Companyaccount,
@@ -26,6 +27,8 @@ const invateShareHolder = require("../models/invateShareHolder");
 const { sendShareInvitationEmail } = require("../configs/sendShareMail");
 const { sendDirectorInvitationEmail } = require("../configs/directorMail");
 const DirectorInvite = require("../models/DirectorInvite");
+const { CompanyAccount } = require("../models/company");
+
 const directorInfo = require("../models/directorInfo");
 const CompanySecretary = require("../models/companySecretary");
 const ShareCapital = require("../models/shareCapital");
@@ -134,7 +137,6 @@ router.post("/creationOfShare", async (req, res) => {
       !total_share ||
       !amount_share ||
       !share_class ||
-      !share_right ||
       total_capital_subscribed === undefined ||
       unpaid_amount === undefined
     ) {
@@ -202,23 +204,18 @@ router.post("/shareHoldersInfo", async (req, res) => {
     console.log("Received data:", req.body);
 
     if (
-      !surname ||
       !name ||
-      !idNo ||
       !idProof ||
       !userType ||
       !address ||
-      !building ||
-      !street ||
-      !district ||
       !addressProof ||
       !email ||
-      !phone ||
       !shareDetailsNoOfShares ||
       !shareDetailsClassOfShares ||
       !userId ||
       !companyId
     ) {
+      console.log("Received data:");
       return res.status(400).json({ error: "All fields are required." });
     }
 
@@ -245,8 +242,8 @@ router.post("/shareHoldersInfo", async (req, res) => {
       companyId: mongoose.Types.ObjectId(companyId),
     });
 
-    await newShareholderInfo.save();
     console.log("new shareholder ingfo",newShareholderInfo)
+    await newShareholderInfo.save();
 
     res.status(201).json({ message: "Shareholder info created successfully!" });
   } catch (error) {
@@ -277,10 +274,12 @@ router.post("/invateShare", async (req, res) => {
           userId: mongoose.Types.ObjectId(userId),
           companyId: mongoose.Types.ObjectId(companyId),
       });
+      const inviteToken = jwt.sign({ email, companyId }, process.env.SECRET_KEY || "Token", { expiresIn: "1h" });
+      const inviteUrl = `${process.env.FRONTEND_URL}/project-form?tab=1&token=${inviteToken}&companyId=${companyId}`;
 
       await inviteShareHolders.save();
       console.log('inviteShareHolders',inviteShareHolders)
-      await sendShareInvitationEmail(email, name, classOfShares, noOfShares, companyId,password);
+      await sendShareInvitationEmail(email, name, classOfShares, noOfShares, companyId,password,inviteUrl);
 
       res.status(201).json({ message: "Invitation to shareholder sent successfully!" });
   } catch (error) {
@@ -288,6 +287,133 @@ router.post("/invateShare", async (req, res) => {
       res.status(500).json({ message: "Server error. Please try again later." });
   }
 });
+
+router.post("/validate-invitation", async (req, res) => {
+  try {
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ valid: false, message: "Token is required" });
+    }
+
+    // Verify the token
+    const decoded = jwt.verify(token, process.env.SECRET_KEY || "Token");
+
+    // First, check in the Shareholders database
+    let invitation = await invateShareHolder.findOne({ 
+      email: decoded.email,
+      companyId: mongoose.Types.ObjectId(decoded.companyId)
+    });
+
+    let role = "Shareholder"; // Default role
+
+    if (!invitation) {
+      console.log(`No Shareholder found for ${decoded.email}, checking Directors...`);
+
+      // If not found in Shareholders, check in Directors
+      invitation = await DirectorInvite.findOne({ 
+        email: decoded.email,
+        companyId: mongoose.Types.ObjectId(decoded.companyId)
+      });
+
+      if (!invitation) {
+        console.log(`No Director found for ${decoded.email} either.`);
+        return res.status(404).json({ valid: false, message: "Invitation not found" });
+      }
+
+      role = "Director"; // Update role if found in Directors
+    }
+
+    console.log(`${decoded.email} is a ${role} in company ${decoded.companyId}`);
+
+    // Generate a token for auto-login
+    const authToken = jwt.sign(
+      { id: invitation._id, email: invitation.email, role },
+      process.env.SECRET_KEY || "Token",
+      { expiresIn: "24h" }
+    );
+
+    return res.status(200).json({ 
+      valid: true,
+      token: authToken, // Authentication token for auto-login 
+      invitationData: {
+        id: invitation._id,
+        name: invitation.name,
+        email: invitation.email,
+        classOfShares: invitation.classOfShares,
+        noOfShares: invitation.noOfShares,
+        companyId: invitation.companyId
+      } 
+    });
+
+  } catch (error) {
+    console.error("Error validating invitation token:", error);
+    return res.status(401).json({ valid: false, message: "Invalid or expired token" });
+  }
+});
+
+
+// Add a route to handle accepting the invitation
+router.post("/accept-invitation", async (req, res) => {
+  try {
+    const { token, password } = req.body;
+
+    // Verify the token
+    const decoded = jwt.verify(token, process.env.SECRET_KEY || "Token");
+
+    let invitation = await invateShareHolder.findOne({ 
+      email: decoded.email,
+      companyId: mongoose.Types.ObjectId(decoded.companyId)
+    });
+
+    let role = "Shareholder";
+
+    if (!invitation) {
+      console.log(`No Shareholder found for ${decoded.email}, checking Directors...`);
+
+      // If not found in Shareholders, check in Directors
+      invitation = await DirectorInvite.findOne({ 
+        email: decoded.email,
+        companyId: mongoose.Types.ObjectId(decoded.companyId)
+      });
+
+      if (!invitation) {
+        console.log(`No Director found for ${decoded.email} either.`);
+        return res.status(404).json({ message: "Invitation not found" });
+      }
+
+      role = "Director";
+    }
+
+    console.log(`${decoded.email} is a ${role}, updating password...`);
+
+    // Update the password (Make sure to hash it)
+    invitation.password = password;
+    await invitation.save();
+
+    // Generate a login token
+    const loginToken = jwt.sign(
+      { id: invitation._id, email: invitation.email, role },
+      process.env.SECRET_KEY || "Token",
+      { expiresIn: "24h" }
+    );
+
+    return res.status(200).json({
+      message: "Invitation accepted successfully",
+      token: loginToken,
+      user: {
+        id: invitation._id,
+        name: invitation.name,
+        email: invitation.email
+      }
+    });
+
+  } catch (error) {
+    console.error("Error accepting invitation:", error);
+    return res.status(500).json({ message: "Server error. Please try again later." });
+  }
+});
+
 
 
 router.get("/getShareCapitalList", async (req, res) => {
@@ -398,18 +524,12 @@ router.post("/directorInfoCreation", async (req, res) => {
     console.log("Received data:", req.body);
 
     if (
-      !surname ||
       !name ||
-      !idNo ||
       !idProof ||
       !type ||
       !address ||
-      !street ||
-      !district ||
-      !building ||
       !addressProof ||
       !email ||
-      !phone ||
       !userId ||
       !companyId
     ) {
@@ -535,12 +655,16 @@ router.delete("/deleteDirector/:id", async (req, res) => {
 //create director invatition
 router.post("/inviteDirector", async (req, res) => {
   try {
-      const { name, email, classOfShares, noOfShares, userId, companyId,password } = req.body;
+      const { name, email, classOfShares, noOfShares, userId, companyId, password } = req.body;
+      console.log('req.body',req.body)
 
-      if (!name || !email || !classOfShares || !noOfShares || !userId || !companyId) {
+      if (!name || !email || !userId || !companyId || !password) {
           return res.status(400).json({ message: "All fields are required." });
       }
-      const roles="Director"
+
+      const roles = "Director";
+      const inviteToken = jwt.sign({ email, companyId }, process.env.SECRET_KEY || "Token", { expiresIn: "1h" });
+      const inviteUrl = `${process.env.FRONTEND_URL}/project-form?tab=2&token=${inviteToken}&companyId=${companyId}`;
 
       const directorInvite = new DirectorInvite({
           name,
@@ -554,9 +678,9 @@ router.post("/inviteDirector", async (req, res) => {
       });
 
       await directorInvite.save();
-      console.log("directice",directorInvite)
+      console.log("Director Invitation:", directorInvite);
 
-      await sendDirectorInvitationEmail(email, name, classOfShares, noOfShares, companyId,password);
+      await sendDirectorInvitationEmail(email, name, classOfShares, noOfShares, password, companyId, inviteUrl);
 
       res.status(201).json({ message: "Invitation sent to the director successfully!" });
   } catch (error) {
@@ -569,6 +693,7 @@ router.post("/inviteDirector", async (req, res) => {
       res.status(500).json({ message: "Server error. Please try again later." });
   }
 });
+
 
 
 //comapny secretary creation
@@ -598,16 +723,10 @@ router.post("/companySecretary", async (req, res) => {
     if (
       !tcspLicenseNo ||
       !type ||
-      !surname ||
       !name ||
       !idProof ||
       !address ||
-      !street ||
-      !building ||
-      !district ||
-      !addressProof ||
       !email ||
-      !phone ||
       !userId ||
       !companyId
     ) {
@@ -651,6 +770,70 @@ router.post("/companySecretary", async (req, res) => {
     }
 
     res.status(500).json({ message: "Server error. Please try again later." });
+  }
+});
+
+router.get("/getAllCompanys", async (req, res) => {
+  try {
+    const companies = await CompanyAccount.find()
+      .populate("directors", "name email") // Populate directors' details
+      .populate("shareholders", "name email") // Populate shareholders' details
+      .populate("secretary", "name email"); // Populate secretary details
+
+    if (!companies || companies.length === 0) {
+      return res.status(404).json({ message: "No companies found" });
+    }
+console.log('companies',companies)
+    res.status(200).json(companies);
+  } catch (error) {
+    console.error("Error fetching companies:", error.message);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+
+
+
+router.post("/storeCompanyData", async (req, res) => {
+  try {
+    // Extracting data from the payload
+    const { companyInfo, directors, shareholders, secretary } = req.body;
+    console.log('payload',req.body)
+
+    if (!companyInfo || companyInfo.length === 0) {
+      return res.status(400).json({ message: "Company info is missing" });
+      throw new Error("Company info is missing.");
+    }
+
+    const companyData = companyInfo[0]; // Assuming only one company info object
+
+    // Convert related data into ObjectIds (If directors, shareholders, and secretary exist)
+    const directorIds = directors.map(d => new mongoose.Types.ObjectId(d._id));
+    const shareholderIds = shareholders.map(s => new mongoose.Types.ObjectId(s._id));
+    const secretaryId = secretary.length > 0 ? new mongoose.Types.ObjectId(secretary[0]._id) : null;
+
+    // Create new company entry
+    const newCompany = new CompanyAccount({
+      business_name: companyData.business_name,
+      trading_name: companyData.trading_name,
+      business_name_chinese: companyData.business_name_chinese,
+      active: companyData.active,
+      directors: directorIds,
+      shareholders: shareholderIds,
+      secretary: secretaryId,
+      proceededBy:secretary[0].name,
+      status: "inprocessing",
+      project: "incorporation"
+    });
+
+    // Save to database
+    //console.log("Company data saved successfully:", newCompany);
+    const savedCompany = await newCompany.save();
+    console.log("Company data saved successfully:", secretary[0].name);
+    return res.status(200).json(savedCompany);
+  } catch (error) {
+    console.error("Error saving company data:", error.message);
+    return res.status(500).json({ message: "Internal server error." });
   }
 });
 

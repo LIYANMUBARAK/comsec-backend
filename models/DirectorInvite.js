@@ -5,8 +5,8 @@ const directorInviteSchema = new mongoose.Schema({
    email: { type: String, required: true}, 
    roles: { type: String, required: true}, 
    password: { type: String, required: true },
-   classOfShares: { type: String, required: true }, 
-   noOfShares: { type: Number, required: true, min: 1 }, 
+   classOfShares: { type: String}, 
+   noOfShares: { type: Number }, 
    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
    companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Companyaccount', required: true }, 
  }, { timestamps: true });

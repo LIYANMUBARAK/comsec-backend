@@ -9,7 +9,7 @@ const shareCapitalSchema = new Schema({
   total_capital_subscribed: { type: Number, required: true },
   unpaid_amount: { type: Number, required: true },
   share_class: { type: String, required: true },
-  share_right: { type: String, required: true },
+  share_right: { type: String},
 });
 
 const ShareCapital = mongoose.model("ShareCapital", shareCapitalSchema);

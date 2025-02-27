@@ -1,7 +1,7 @@
 const nodemailer = require('nodemailer');
 const EMAIL_USER = process.env.EMAIL_USER;
 const EMAIL_PASS = process.env.EMAIL_PASS;
-function sendShareInvitationEmail(email, name, classOfShares, noOfShares, companyId,password) {
+function sendShareInvitationEmail(email, name, classOfShares, noOfShares, companyId,password,inviteUrl) {
     const transporter = nodemailer.createTransport({
         service: "gmail",
         host: "smtp.gmail.com",
@@ -18,25 +18,22 @@ function sendShareInvitationEmail(email, name, classOfShares, noOfShares, compan
         to: email,
         subject: "Invitation to Become a Shareholder in COMSEC360",
         html: `
-            <h1>Shareholder Invitation</h1>
+           <h1>Shareholder Invitation</h1>
             <p>Dear ${name},</p>
             <p>You have been invited to become a shareholder with the following details:</p>
             <ul>
-                <li>Class of Shares: ${classOfShares}</li>
-                <li>Number of Shares: ${noOfShares}</li>
-                <li>Company ID: ${companyId}</li>
-                <p>Please first login to the website by the following Credentials:</p>
-            <li>Class of Shares: ${email}</li>
-            <li>Class of Shares: ${password}</li>
-                </ul>
-                <p style="text-align:center;">
-                <a href="${process.env.FRONTEND_URL}/login" style="display: inline-block; background-color: black; color: white; 
-                font-size: 14px; font-weight: bold; text-decoration: none; 
-                padding: 12px 24px; border-radius: 6px;">Accept Invitation</a>
-            </p>
-                <p>After login Please accept this invitation by clicking the link below:</p>
+                <li><strong>Class of Shares:</strong> ${classOfShares}</li>
+                <li><strong>Number of Shares:</strong> ${noOfShares}</li>
+                <li><strong>Company ID:</strong> ${companyId}</li>
+            </ul>
+            <p>These are your following credentials:</p>
+            <ul>
+                <li><strong>Class of Shares:</strong> ${email}</li>
+                <li><strong>Number of Shares:</strong> ${password}</li>
+            </ul>
+            <p>Click the button below to accept the invitation:</p>
             <p style="text-align:center;">
-                <a href="${process.env.FRONTEND_URL}/project-form?fromShare=true&companyId=${companyId}" style="display: inline-block; background-color: black; color: white; 
+                <a href="${inviteUrl}" style="display: inline-block; background-color: black; color: white; 
                 font-size: 14px; font-weight: bold; text-decoration: none; 
                 padding: 12px 24px; border-radius: 6px;">Accept Invitation</a>
             </p>
