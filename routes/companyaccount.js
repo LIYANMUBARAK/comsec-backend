@@ -208,7 +208,6 @@ router.post("/shareHoldersInfo", async (req, res) => {
       !idProof ||
       !userType ||
       !address ||
-      !addressProof ||
       !email ||
       !shareDetailsNoOfShares ||
       !shareDetailsClassOfShares ||
@@ -219,13 +218,8 @@ router.post("/shareHoldersInfo", async (req, res) => {
       return res.status(400).json({ error: "All fields are required." });
     }
 
-    if (idProof) {
-      idProofUrl = await uploadCloudinary(idProof);
-    }
-    
-    if (addressProof) {
-      addressProofUrl = await uploadCloudinary(addressProof);
-    }
+    const idProofUrl = await uploadCloudinary(idProof);
+    const addressProofUrl = await uploadCloudinary(addressProof);
 
     const newShareholderInfo = new ShareholderInfo({
       surname,
@@ -533,7 +527,6 @@ router.post("/directorInfoCreation", async (req, res) => {
       !idProof ||
       !type ||
       !address ||
-      !addressProof ||
       !email ||
       !userId ||
       !companyId
@@ -541,13 +534,8 @@ router.post("/directorInfoCreation", async (req, res) => {
       return res.status(400).json({ message: "All fields are required." });
     }
 
-    if (idProof) {
-      idProofUrl = await uploadCloudinary(idProof);
-    }
-    
-    if (addressProof) {
-      addressProofUrl = await uploadCloudinary(addressProof);
-    }
+    const idProofUrl = await uploadCloudinary(idProof);
+    const addressProofUrl = await uploadCloudinary(addressProof);
 
     // Create a new director document
     const newDirector = new directorInfo({
@@ -743,13 +731,8 @@ router.post("/companySecretary", async (req, res) => {
       return res.status(400).json({ message: "All fields are required." });
     }
 
-    if (idProof) {
-      idProofUrl = await uploadCloudinary(idProof);
-    }
-    
-    if (addressProof) {
-      addressProofUrl = await uploadCloudinary(addressProof);
-    }
+    const idProofUrl = await uploadCloudinary(idProof);
+    const addressProofUrl = await uploadCloudinary(addressProof);
 
     const newCompanySecretary = new CompanySecretary({
       tcspLicenseNo,
