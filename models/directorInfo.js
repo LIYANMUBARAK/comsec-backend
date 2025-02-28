@@ -16,7 +16,7 @@
       street: { type: String },
       building: { type: String },
       district: { type: String},
-      addressProof: { type: String, required: true },
+      addressProof: { type: String },
       email: { type: String, required: true,unique:true},
       phone: { type: String},
       userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
