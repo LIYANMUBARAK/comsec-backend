@@ -219,6 +219,7 @@ router.post("/shareHoldersInfo", async (req, res) => {
     }
 
     const idProofUrl = await uploadCloudinary(idProof);
+    let addressProofUrl
     if (addressProof) {
       addressProofUrl = await uploadCloudinary(addressProof);
     }
@@ -537,6 +538,7 @@ router.post("/directorInfoCreation", async (req, res) => {
     }
 
     const idProofUrl = await uploadCloudinary(idProof);
+    let addressProofUrl
     if (addressProof) {
       addressProofUrl = await uploadCloudinary(addressProof);
     }
@@ -736,6 +738,7 @@ router.post("/companySecretary", async (req, res) => {
     }
 
     const idProofUrl = await uploadCloudinary(idProof);
+    let addressProofUrl
     if (addressProof) {
       addressProofUrl = await uploadCloudinary(addressProof);
     }
