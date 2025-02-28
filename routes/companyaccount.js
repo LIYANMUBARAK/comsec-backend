@@ -219,7 +219,9 @@ router.post("/shareHoldersInfo", async (req, res) => {
     }
 
     const idProofUrl = await uploadCloudinary(idProof);
-    const addressProofUrl = await uploadCloudinary(addressProof);
+    if (addressProof) {
+      addressProofUrl = await uploadCloudinary(addressProof);
+    }
 
     const newShareholderInfo = new ShareholderInfo({
       surname,
@@ -535,7 +537,9 @@ router.post("/directorInfoCreation", async (req, res) => {
     }
 
     const idProofUrl = await uploadCloudinary(idProof);
-    const addressProofUrl = await uploadCloudinary(addressProof);
+    if (addressProof) {
+      addressProofUrl = await uploadCloudinary(addressProof);
+    }
 
     // Create a new director document
     const newDirector = new directorInfo({
@@ -732,7 +736,9 @@ router.post("/companySecretary", async (req, res) => {
     }
 
     const idProofUrl = await uploadCloudinary(idProof);
-    const addressProofUrl = await uploadCloudinary(addressProof);
+    if (addressProof) {
+      addressProofUrl = await uploadCloudinary(addressProof);
+    }
 
     const newCompanySecretary = new CompanySecretary({
       tcspLicenseNo,
