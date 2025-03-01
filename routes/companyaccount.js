@@ -188,6 +188,127 @@ router.post("/creationOfShare", async (req, res) => {
   }
 });
 
+router.put("/updateShare", async (req, res) => {
+  try {
+    console.log("Inside share update");
+    console.log("Request body:", req.body);
+
+    const {
+      shareId,
+      companyId,
+      userid,
+      total_shares_proposed: total_share,
+      unit_price: amount_share,
+      total_capital_subscribed,
+      unpaid_amount,
+      class_of_shares: share_class,
+      particulars_of_rights: share_right,
+    } = req.body;
+
+    // Log received data
+    console.log("Received update data:", {
+      shareId,
+      companyId,
+      userid,
+      total_share,
+      amount_share,
+      share_class,
+      share_right,
+      total_capital_subscribed,
+      unpaid_amount,
+    });
+
+    // Validate required fields
+    if (
+      !shareId ||
+      !companyId ||
+      !userid ||
+      !total_share ||
+      !amount_share ||
+      !share_class ||
+      total_capital_subscribed === undefined ||
+      unpaid_amount === undefined
+    ) {
+      return res.status(400).json({ error: "All fields are required." });
+    }
+
+    // Find the existing share to get the old total_share
+    const existingShare = await ShareCapital.findById(shareId);
+    if (!existingShare) {
+      return res.status(404).json({ error: "Share not found." });
+    }
+
+    // Calculate the difference in shares to update company total
+    const oldTotalShare = existingShare.total_share;
+    const newTotalShare = parseInt(total_share, 10);
+    const shareDifference = newTotalShare - oldTotalShare;
+
+    // Parse numerical values
+    const numericAmountShare = parseFloat(amount_share);
+    const numericTotalCapitalSubscribed = parseFloat(total_capital_subscribed);
+    const numericUnpaidAmount = parseFloat(unpaid_amount);
+
+    // Update the share capital
+    await ShareCapital.findByIdAndUpdate(shareId, {
+      total_share: newTotalShare,
+      amount_share: numericAmountShare,
+      total_capital_subscribed: numericTotalCapitalSubscribed,
+      unpaid_amount: numericUnpaidAmount,
+      share_class,
+      share_right,
+    });
+
+    // Update the company's total share count if there was a change
+    if (shareDifference !== 0) {
+      await Companyaccount.findByIdAndUpdate(companyId, {
+        $inc: { total_share: shareDifference },
+      });
+    }
+
+    return res.status(200).json({ message: "Share updated successfully!" });
+  } catch (error) {
+    console.error("Error updating share:", error);
+    res.status(500).json({ message: "Server error. Please try again later." });
+  }
+});
+
+// Delete share capital
+router.delete("/deleteShare/:shareId/:companyId", async (req, res) => {
+  try {
+    console.log("Inside share deletion");
+    const { shareId, companyId } = req.params;
+
+    // Log received data
+    console.log("Deleting share:", { shareId, companyId });
+
+    // Validate required parameters
+    if (!shareId || !companyId) {
+      return res.status(400).json({ error: "Share ID and Company ID are required." });
+    }
+
+    // Find the share to be deleted to get its total_share value
+    const shareToDelete = await ShareCapital.findById(shareId);
+    if (!shareToDelete) {
+      return res.status(404).json({ error: "Share not found." });
+    }
+
+    // Get the total_share value to deduct from company account
+    const totalShareToDeduct = shareToDelete.total_share;
+
+    // Delete the share capital
+    await ShareCapital.findByIdAndDelete(shareId);
+
+    // Update the company's total share count
+    await Companyaccount.findByIdAndUpdate(companyId, {
+      $inc: { total_share: -totalShareToDeduct },
+    });
+
+    return res.status(200).json({ message: "Share deleted successfully!" });
+  } catch (error) {
+    console.error("Error deleting share:", error);
+    res.status(500).json({ message: "Server error. Please try again later." });
+  }
+});
 
 
 // create shareHoldersInfo
@@ -265,6 +386,81 @@ router.post("/shareHoldersInfo", async (req, res) => {
     res.status(500).json({ message: "Server error. Please try again later." });
   }
 });
+
+router.put("/updateShareHolder/:id", async (req, res) => {
+  try {
+    const shareholderId = req.params.id
+    const {
+      surname,
+      name,
+      chineeseName,
+      idNo,
+      idProof,
+      userType,
+      address,
+      street,
+      building,
+      district,
+      addressProof,
+      email,
+      phone,
+      shareDetailsNoOfShares,
+      shareDetailsClassOfShares,
+    } = req.body
+
+    console.log("Updating shareholder:", shareholderId)
+    console.log("Received data:", req.body)
+
+    // Find the shareholder by ID
+    const shareholder = await ShareholderInfo.findById(shareholderId)
+
+    if (!shareholder) {
+      return res.status(404).json({ message: "Shareholder not found" })
+    }
+
+    // Process images if new ones are provided
+    let idProofUrl = shareholder.idProof
+    if (idProof && idProof !== shareholder.idProof) {
+      idProofUrl = await uploadCloudinary(idProof)
+    }
+
+    let addressProofUrl = shareholder.addressProof
+    if (addressProof && addressProof !== shareholder.addressProof) {
+      addressProofUrl = await uploadCloudinary(addressProof)
+    }
+
+    // Update the shareholder
+    const updatedShareholder = await ShareholderInfo.findByIdAndUpdate(
+      shareholderId,
+      {
+        surname,
+        name,
+        chineeseName,
+        idNo,
+        idProof: idProofUrl,
+        userType,
+        address,
+        district,
+        building,
+        street,
+        addressProof: addressProofUrl,
+        email,
+        phone,
+        shareDetailsNoOfShares,
+        shareDetailsClassOfShares,
+      },
+      { new: true },
+    )
+
+    res.status(200).json({
+      message: "Shareholder updated successfully!",
+      shareholder: updatedShareholder,
+    })
+  } catch (error) {
+    console.error("Error updating shareholder:", error)
+    res.status(500).json({ message: "Server error. Please try again later." })
+  }
+})
 
 // create InvateShareHolders
 router.post("/invateShare", async (req, res) => {
@@ -589,6 +785,78 @@ router.post("/directorInfoCreation", async (req, res) => {
     res.status(500).json({ message: "Server error. Please try again later." });
   }
 });
+
+router.put("/updateDirector/:id", async (req, res) => {
+  try {
+    const directorId = req.params.id
+    const {
+      surname,
+      name,
+      chineeseName,
+      idNo,
+      idProof,
+      type,
+      address,
+      street,
+      building,
+      district,
+      addressProof,
+      email,
+      phone,
+    } = req.body
+
+    console.log("Updating director:", directorId)
+    console.log("Received data:", req.body)
+
+    // Find the director by ID
+    const director = await directorInfo.findById(directorId)
+
+    if (!director) {
+      return res.status(404).json({ message: "Director not found" })
+    }
+
+    // Process images if new ones are provided
+    let idProofUrl = director.idProof
+    if (idProof && idProof !== director.idProof) {
+      idProofUrl = await uploadCloudinary(idProof)
+    }
+
+    let addressProofUrl = director.addressProof
+    if (addressProof && addressProof !== director.addressProof) {
+      addressProofUrl = await uploadCloudinary(addressProof)
+    }
+
+    // Update the director
+    const updatedDirector = await directorInfo.findByIdAndUpdate(
+      directorId,
+      {
+        surname,
+        name,
+        chineeseName,
+        idNo,
+        idProof: idProofUrl,
+        type,
+        address,
+        district,
+        building,
+        street,
+        addressProof: addressProofUrl,
+        email,
+        phone,
+      },
+      { new: true },
+    )
+
+    res.status(200).json({
+      message: "Director updated successfully!",
+      director: updatedDirector,
+    })
+  } catch (error) {
+    console.error("Error updating director:", error)
+    res.status(500).json({ message: "Server error. Please try again later." })
+  }
+})
+
 router.post("/uploadNNC1/:directorId", async (req, res) => {
   try {
     const { directorId } = req.params;
