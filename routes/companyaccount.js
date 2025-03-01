@@ -59,6 +59,7 @@ router.post("/submitCompanyInfo", async (req, res) => {
     if (req.body.companyLogo) {
       companyLogoUrl = await uploadCloudinary(req.body.companyLogo);
     }
+    console.log('reqqqq',req.body)
 
     const companyInfo = new Companyaccount({
       business_name: req.body.companyNameEN,
@@ -91,6 +92,17 @@ router.post("/submitCompanyInfo", async (req, res) => {
 
     const savedCompanyInfo = await companyInfo.save();
     console.log("saving",savedCompanyInfo)
+    const userId = req.body.userId; // Assuming the user ID is sent in the request
+
+    if (userId) {
+      await User.findByIdAndUpdate(
+        userId,
+        { $push: { companyid: savedCompanyInfo._id } }, // Push the new companyId to user's companyid array
+        { new: true }
+      );
+    }
+    console.log("saving",User)
+
 
     res.status(201).json({
       message: "Company information submitted successfully!",
