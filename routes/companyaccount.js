@@ -387,6 +387,18 @@ router.post("/shareHoldersInfo", async (req, res) => {
   }
 });
 
+router.delete("/deleteShareHolder/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    await ShareholderInfo.findByIdAndDelete(id);
+    res.status(200).json({ message: "Shareholder deleted successfully!" });
+  } catch (error) {
+    console.error("Error deleting shareholder:", error);
+    res.status(500).json({ message: "Server error. Please try again later." });
+  }
+});
+
+
 router.put("/updateShareHolder/:id", async (req, res) => {
   try {
     const shareholderId = req.params.id
