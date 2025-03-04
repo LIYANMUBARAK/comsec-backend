@@ -15,6 +15,10 @@
       address: { type: String, required: true },
       street: { type: String },
       building: { type: String },
+      isInvited: {
+        type: Boolean,
+        Default:false
+      },
       district: { type: String},
       addressProof: { type: String },
       email: { type: String, required: true,unique:true},

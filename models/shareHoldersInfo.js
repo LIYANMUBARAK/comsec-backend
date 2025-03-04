@@ -47,6 +47,10 @@ const shareholdersInfoSchema = new Schema(
       type: String,
       required: true,
     },
+    isInvited: {
+      type: Boolean,
+      Default:false
+    },
     phone: {
       type: String
     },

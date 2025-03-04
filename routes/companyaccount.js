@@ -128,6 +128,7 @@ router.post("/creationOfShare", async (req, res) => {
       unpaid_amount,
       class_of_shares: share_class,
       particulars_of_rights: share_right,
+      currency=currency
     } = req.body;
 
     // Log received data
@@ -167,6 +168,7 @@ router.post("/creationOfShare", async (req, res) => {
       companyid,
       total_share: numericTotalShare,
       amount_share: numericAmountShare,
+      currency: currency,
       total_capital_subscribed: numericTotalCapitalSubscribed,
       unpaid_amount: numericUnpaidAmount,
       share_class,
@@ -203,6 +205,7 @@ router.put("/updateShare", async (req, res) => {
       unpaid_amount,
       class_of_shares: share_class,
       particulars_of_rights: share_right,
+      currency:currency
     } = req.body;
 
     // Log received data
@@ -216,6 +219,7 @@ router.put("/updateShare", async (req, res) => {
       share_right,
       total_capital_subscribed,
       unpaid_amount,
+      
     });
 
     // Validate required fields
@@ -254,6 +258,7 @@ router.put("/updateShare", async (req, res) => {
       amount_share: numericAmountShare,
       total_capital_subscribed: numericTotalCapitalSubscribed,
       unpaid_amount: numericUnpaidAmount,
+      currency,
       share_class,
       share_right,
     });
@@ -332,6 +337,7 @@ router.post("/shareHoldersInfo", async (req, res) => {
       shareDetailsClassOfShares,
       userId,
       companyId,
+      isInvited
     } = req.body;
 
     console.log("Received data:", req.body);
@@ -347,14 +353,26 @@ router.post("/shareHoldersInfo", async (req, res) => {
       !userId ||
       !companyId
     ) {
-      console.log("Received data:");
+      console.log("Missing required fields");
       return res.status(400).json({ error: "All fields are required." });
     }
 
+    // Upload files to Cloudinary
     const idProofUrl = await uploadCloudinary(idProof);
-    let addressProofUrl
+    let addressProofUrl = null;
     if (addressProof) {
       addressProofUrl = await uploadCloudinary(addressProof);
+    }
+
+    // Ensure companyId and userId are valid ObjectIds
+    let companyObjectId, userObjectId;
+    
+    try {
+      companyObjectId = mongoose.Types.ObjectId(companyId);
+      userObjectId = mongoose.Types.ObjectId(userId);
+    } catch (error) {
+      console.error("Invalid ObjectId format:", error);
+      return res.status(400).json({ error: "Invalid company ID or user ID format" });
     }
 
     const newShareholderInfo = new ShareholderInfo({
@@ -370,17 +388,21 @@ router.post("/shareHoldersInfo", async (req, res) => {
       street,
       addressProof: addressProofUrl,
       email,
+      isInvited,
       phone,
       shareDetailsNoOfShares,
       shareDetailsClassOfShares,
-      userId: mongoose.Types.ObjectId(userId),
-      companyId: mongoose.Types.ObjectId(companyId),
+      userId: userObjectId,
+      companyId: companyObjectId,
     });
 
-    console.log("new shareholder ingfo",newShareholderInfo)
+    console.log("New shareholder info:", newShareholderInfo);
     await newShareholderInfo.save();
 
-    res.status(201).json({ message: "Shareholder info created successfully!" });
+    res.status(201).json({ 
+      message: "Shareholder info created successfully!",
+      shareholder: newShareholderInfo 
+    });
   } catch (error) {
     console.error("Error creating shareholder info:", error);
     res.status(500).json({ message: "Server error. Please try again later." });
@@ -497,7 +519,7 @@ router.post("/invateShare", async (req, res) => {
           companyId: mongoose.Types.ObjectId(companyId),
       });
       const inviteToken = jwt.sign({ email, companyId }, process.env.SECRET_KEY || "Token", { expiresIn: "1h" });
-      const inviteUrl = `${process.env.FRONTEND_URL}/project-form?tab=1&token=${inviteToken}&companyId=${companyId}`;
+      const inviteUrl = `${process.env.FRONTEND_URL}/project-form?tab=1&token=${inviteToken}&companyId=${companyId}&isInvited=true`;
 
       await inviteShareHolders.save();
       console.log('inviteShareHolders',inviteShareHolders)
@@ -677,15 +699,28 @@ router.get("/getShareCapitalList", async (req, res) => {
 // Route to get the list of shareholders with populated data
 router.get("/getShareHoldersList", async (req, res) => {
   const { companyId, userId } = req.query;
+  console.log('Fetching shareholders for company:', companyId);
 
-  if (!companyId || !userId) {
-    return res.status(400).json({ message: "companyId and userId are required." });
+  if (!companyId) {
+    return res.status(400).json({ message: "companyId is required." });
   }
 
   try {
-    const shareholders = await ShareholderInfo.find({ companyId, userId })
-      .populate("userId") 
-      .populate("companyId");
+    // Ensure companyId is a valid ObjectId
+    let companyObjectId;
+    try {
+      companyObjectId = mongoose.Types.ObjectId(companyId);
+    } catch (error) {
+      console.error("Invalid companyId format:", error);
+      return res.status(400).json({ error: "Invalid company ID format" });
+    }
+
+    // Find shareholders with this companyId
+    const shareholders = await ShareholderInfo.find({ 
+      companyId: companyObjectId 
+    }).populate("companyId");
+    
+    console.log(`Found ${shareholders.length} shareholders for company ${companyId}`);
 
     res.status(200).json({
       message: "Shareholders fetched successfully",
@@ -740,6 +775,7 @@ router.post("/directorInfoCreation", async (req, res) => {
       email,
       phone,
       userId,
+      isInvited,
       companyId,
     } = req.body;
 
@@ -774,6 +810,7 @@ router.post("/directorInfoCreation", async (req, res) => {
       address,
       street,
       building,
+      isInvited,
       district,
       addressProof: addressProofUrl,
       email,
@@ -909,7 +946,7 @@ router.get("/getDirectorsInfo", async (req, res) => {
         .json({ message: "companyId and userId are required" });
     }
 
-    const directors = await directorInfo.find({ companyId, userId });
+    const directors = await directorInfo.find({ companyId });
 
     if (directors.length === 0) {
       return res
@@ -951,7 +988,7 @@ router.delete("/deleteDirector/:id", async (req, res) => {
 //create director invatition
 router.post("/inviteDirector", async (req, res) => {
   try {
-      const { name, email, classOfShares, noOfShares, userId, companyId, password } = req.body;
+      const { name, email, classOfShares, noOfShares, userId, companyId, password,isInvited } = req.body;
       console.log('req.body',req.body)
 
       if (!name || !email || !userId || !companyId || !password) {
@@ -969,6 +1006,7 @@ router.post("/inviteDirector", async (req, res) => {
           noOfShares,
           password,
           roles,
+          isInvited,
           userId: mongoose.Types.ObjectId(userId),
           companyId: mongoose.Types.ObjectId(companyId),
       });
