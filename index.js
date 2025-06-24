@@ -36,15 +36,16 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(cookieParser()); 
 // app.use(cors());
 
-const allowedOrigins = [
-  process.env.FRONTEND_URL || 'http://localhost:4200'
-];
+const allowedOrigins = [process.env.FRONTEND_URL, 'http://localhost:4200'];
 
-
-// Apply CORS configuration immediately after initializing the app
 app.use(cors({
-  origin: allowedOrigins,
-  methods: ['GET', 'POST', 'PUT', 'DELETE','PATCH'],
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS not allowed for this origin: ' + origin));
+    }
+  },
   credentials: true,
 }));
 
