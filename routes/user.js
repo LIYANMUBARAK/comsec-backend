@@ -32,6 +32,9 @@ const { sendOtpEmail } = require("../configs/mailer");
 const userOtpVerification = require("../models/otpModels");
 const { sendUserInvitationEmail } = require("../configs/invateUser");
 const DirectorInvite = require("../models/DirectorInvite");
+const EmailTemplate = require("../models/email_templates"); 
+const IncorporationDocuments = require("../models/incorporationDocuments");
+
 
 //User registeration
 router.post("/register", async (req, res) => {
@@ -413,6 +416,8 @@ router.post("/inviteUser", async (req, res) => {
   try {
     const { firstName, lastName, email, password } = req.body;
 
+    console.log(req.body)
+
     if (!firstName || !lastName || !email || !password) {
       return res.status(400).json({ message: "All fields are required." });
     }
@@ -631,6 +636,76 @@ router.post("/forgot-password", async (req, res) => {
     res.status(500).json({ message: "Internal Server Error." });
   }
 });
+
+
+router.get("/get_user_invitation_email_template", async (req, res) => {
+  try {
+    const template = await EmailTemplate.findOne({ name: "user_invitation" });
+
+    if (!template) {
+      return res.status(404).json({ message: "Template not found" });
+    }
+
+    res.status(200).json(template);
+  } catch (error) {
+    console.error("Error fetching template:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+// PUT update user invitation email template
+router.put("/update_user_invitation_email_template", async (req, res) => {
+  try {
+    const { subject, html } = req.body;
+
+    if (!subject || !html) {
+      return res.status(400).json({ message: "Subject and HTML are required" });
+    }
+
+    const updated = await EmailTemplate.findOneAndUpdate(
+      { name: "user_invitation" },
+      { subject, html, updatedAt: new Date() },
+      { new: true, upsert: true } // upsert in case it doesn’t exist yet
+    );
+
+    res.status(200).json({
+      message: "Template updated successfully",
+      template: updated,
+    });
+  } catch (error) {
+    console.error("Error updating template:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+router.get("/get-incorporation-documents", async (req, res) => {
+  try {
+    const documents = await IncorporationDocuments.find().sort({ srNo: 1 });
+    console.log(documents)
+    res.status(200).json(documents);
+  } catch (err) {
+    console.error("Error fetching documents:", err);
+    res.status(500).json({ error: "Failed to fetch document templates" });
+  }
+});
+
+router.get("/get-incorporation-email-template/:templateName", async (req, res) => {
+  try {
+        const { templateName } = req.params;
+console.log(templateName)
+    const template = await EmailTemplate.findOne({ name:templateName });
+    console.log(template)
+    if (!template) {
+      return res.status(404).json({ message: "Template not found" });
+    }
+
+    res.status(200).json(template);
+  } catch (error) {
+    console.error("Error fetching template:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
 
 // router.post("/createReg", async (req, res) => {
 //   try {
