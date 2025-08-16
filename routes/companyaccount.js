@@ -53,13 +53,77 @@ var storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // creating company info
-router.post("/submitCompanyInfo", async (req, res) => {
+// router.post("/submitCompanyInfo", async (req, res) => {
+//   try {
+//     let companyLogoUrl = "";
+//     if (req.body.companyLogo) {
+//       companyLogoUrl = await uploadCloudinary(req.body.companyLogo);
+//     }
+//     console.log('reqqqq',req.body)
+
+//     const companyInfo = new Companyaccount({
+//       business_name: req.body.companyNameEN,
+//       trading_name: req.body.companyNameCN,
+//       business_name_chinese: req.body.companyNameCN,
+//       type_of_business: req.body.companyType,
+//       natureOfBusiness: req.body.natureofCompany.value,
+//       natureOfBusiness_code: req.body.natureofCompany.code,
+//       subscriptionDuration: req.body.subscriptionDuration,
+//       office_address: req.body.Flat_Address,
+//       office_address1: req.body.Building_Address,
+//       office_city: req.body.District_Address,
+//       office_country: req.body.country_Address,
+//       office_state: req.body.country_Address,
+//       email_id: req.body.company_Email,
+//       mobile_number: req.body.company_Telphone,
+//       fax: req.body.company_Fax,
+//       reference_no: req.body.presentorReferance,
+//       company_logo: companyLogoUrl,
+//       presentorName: req.body.presentorName,
+//       presentorChiName: req.body.presentorChiName,
+//       presentorAddress: req.body.presentorAddress,
+//       presentorDistrict: req.body.presentorDistrict,
+//       presentorBuilding: req.body.presentorBuilding,
+//       presentorStreet: req.body.presentorStreet,
+//       presentorTel: req.body.presentorTel,
+//       presentorFax: req.body.presentorFax,
+//       presentorEmail: req.body.presentorEmail,
+
+//       currentStage : req.body.currentStage
+//     });
+
+//     const savedCompanyInfo = await companyInfo.save();
+//     console.log("saving",savedCompanyInfo)
+//     const userId = req.body.userId; // Assuming the user ID is sent in the request
+
+//     if (userId) {
+//       await User.findByIdAndUpdate(
+//         userId,
+//         { $push: { companyid: savedCompanyInfo._id } }, // Push the new companyId to user's companyid array
+//         { new: true }
+//       );
+//     }
+//     console.log("saving",User)
+
+
+//     res.status(201).json({
+//       message: "Company information submitted successfully!",
+//       companyId: savedCompanyInfo._id,
+//     });
+//   } catch (err) {
+//     console.error("Error submitting company information:", err);
+//     res.status(500).json({ error: "Server error. Please try again later." });
+//   }
+// });
+
+router.post("/createCompanyInfo", async (req, res) => {
   try {
     let companyLogoUrl = "";
     if (req.body.companyLogo) {
       companyLogoUrl = await uploadCloudinary(req.body.companyLogo);
     }
-    console.log('reqqqq',req.body)
+
+    console.log("new company account creation : ", req.body)
 
     const companyInfo = new Companyaccount({
       business_name: req.body.companyNameEN,
@@ -88,31 +152,103 @@ router.post("/submitCompanyInfo", async (req, res) => {
       presentorTel: req.body.presentorTel,
       presentorFax: req.body.presentorFax,
       presentorEmail: req.body.presentorEmail,
+      currentStage: req.body.currentStage
     });
 
     const savedCompanyInfo = await companyInfo.save();
-    console.log("saving",savedCompanyInfo)
-    const userId = req.body.userId; // Assuming the user ID is sent in the request
+    const userId = req.body.userId;
 
     if (userId) {
       await User.findByIdAndUpdate(
         userId,
-        { $push: { companyid: savedCompanyInfo._id } }, // Push the new companyId to user's companyid array
+        { $push: { companyid: savedCompanyInfo._id } },
         { new: true }
       );
     }
-    console.log("saving",User)
-
 
     res.status(201).json({
-      message: "Company information submitted successfully!",
+      message: "Company information created successfully!",
       companyId: savedCompanyInfo._id,
     });
   } catch (err) {
-    console.error("Error submitting company information:", err);
+    console.error("Error creating company information:", err);
     res.status(500).json({ error: "Server error. Please try again later." });
   }
 });
+
+// Update existing company
+router.put("/updateCompanyInfo/:companyId", async (req, res) => {
+  try {
+    let companyLogoUrl = req.body.companyLogo;
+    
+    // Only upload to cloudinary if it's a new base64 image
+    if (req.body.companyLogo && req.body.companyLogo.startsWith('data:image')) {
+      companyLogoUrl = await uploadCloudinary(req.body.companyLogo);
+    }
+
+    const updateData = {
+      business_name: req.body.companyNameEN,
+      trading_name: req.body.companyNameCN,
+      business_name_chinese: req.body.companyNameCN,
+      type_of_business: req.body.companyType,
+      natureOfBusiness: req.body.natureofCompany.value,
+      natureOfBusiness_code: req.body.natureofCompany.code,
+      subscriptionDuration: req.body.subscriptionDuration,
+      office_address: req.body.Flat_Address,
+      office_address1: req.body.Building_Address,
+      office_city: req.body.District_Address,
+      office_country: req.body.country_Address,
+      office_state: req.body.country_Address,
+      email_id: req.body.company_Email,
+      mobile_number: req.body.company_Telphone,
+      fax: req.body.company_Fax,
+      reference_no: req.body.presentorReferance,
+      company_logo: companyLogoUrl,
+      presentorName: req.body.presentorName,
+      presentorChiName: req.body.presentorChiName,
+      presentorAddress: req.body.presentorAddress,
+      presentorDistrict: req.body.presentorDistrict,
+      presentorBuilding: req.body.presentorBuilding,
+      presentorStreet: req.body.presentorStreet,
+      presentorTel: req.body.presentorTel,
+      presentorFax: req.body.presentorFax,
+      presentorEmail: req.body.presentorEmail,
+      currentStage: req.body.currentStage
+    };
+
+    const updatedCompany = await Companyaccount.findByIdAndUpdate(
+      req.params.companyId,
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedCompany) {
+      return res.status(404).json({ error: "Company not found" });
+    }
+
+    res.status(200).json({
+      message: "Company information updated successfully!",
+      companyId: updatedCompany._id,
+    });
+  } catch (err) {
+    console.error("Error updating company information:", err);
+
+    res.status(500).json({ error: "Server error. Please try again later." });
+  }
+});
+
+router.put("/updateCompanyCurrentStage/:companyId", async (req, res) =>{
+   const updateData = {
+      currentStage: req.body.currentStage
+    };
+   
+   const updatedCompany = await Companyaccount.findByIdAndUpdate(
+      req.params.companyId,
+      updateData,
+      { new: true, runValidators: true }
+    );
+})
+
 
 router.post("/creationOfShare", async (req, res) => {
   try {

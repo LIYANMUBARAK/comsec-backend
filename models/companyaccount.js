@@ -10,7 +10,7 @@ const companyAccountSchema = new Schema(
     business_name_chinese: { type: String },
     type_of_business: { type: String },
     natureOfBusiness:{type:String},
-    natureOfBusiness_code:{type:Number},
+    natureOfBusiness_code:{type:String},
     subscriptionDuration:{type:String},
     office_address: { type: String },
     office_address1: { type: String },
@@ -43,7 +43,8 @@ const companyAccountSchema = new Schema(
     start_date: { type: String },
     end_date: { type: String },
     share_class: { type: Object },
-    share_right: { type: String }
+    share_right: { type: String },
+    currentStage : {type:Number}
   },
   { timestamps: true }
 );
