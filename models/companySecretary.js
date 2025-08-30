@@ -17,6 +17,8 @@ const companySecretarySchema = new mongoose.Schema({
   addressProof: { type: String},
   email: { type: String, required: true, unique: true }, 
   phone: { type: String },
+  idNo: {type: String},
+  companyNo : {type: String},
   userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, 
   companyId: { type: mongoose.Schema.Types.ObjectId, ref: "Companyaccount" } 
 }, { timestamps: true });

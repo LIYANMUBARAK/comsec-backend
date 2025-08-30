@@ -239,9 +239,9 @@ router.put("/updateCompanyInfo/:companyId", async (req, res) => {
 
 router.put("/updateCompanyCurrentStage/:companyId", async (req, res) =>{
    const updateData = {
-      currentStage: req.body.currentStage
+      currentStage: req.body.index
     };
-   
+   console.log("updating Company current STAGEEEEEEEEE",req.body)
    const updatedCompany = await Companyaccount.findByIdAndUpdate(
       req.params.companyId,
       updateData,
@@ -1186,6 +1186,8 @@ router.post("/companySecretary", async (req, res) => {
       phone,
       userId,
       companyId,
+      idNo,
+      companyNo
     } = req.body;
 
     console.log("Received data:", req.body);
@@ -1224,6 +1226,8 @@ router.post("/companySecretary", async (req, res) => {
       addressProof: addressProofUrl,
       email,
       phone,
+       idNo,
+      companyNo,
       userId: mongoose.Types.ObjectId(userId),
       companyId: mongoose.Types.ObjectId(companyId),
     });
