@@ -36,7 +36,7 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(cookieParser()); 
 // app.use(cors());
 
-const allowedOrigins = [process.env.FRONTEND_URL, 'http://localhost:4200'];
+const allowedOrigins = [process.env.FRONTEND_URL, 'http://localhost:4200',   "https://comsec-frontend-px6fhrwah-liyan-mubaraks-projects.vercel.app" ]
 
 app.use(cors({
   origin: function (origin, callback) {
