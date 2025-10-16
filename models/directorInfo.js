@@ -18,6 +18,7 @@ const directorSchema = new mongoose.Schema(
     addressProof: { type: String },
     email: { type: String, required: true, unique: true },
     phone: { type: String },
+    countryCode: { type: String, default: "+91" },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

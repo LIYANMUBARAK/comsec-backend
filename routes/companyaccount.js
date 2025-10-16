@@ -121,10 +121,10 @@ router.post("/createCompanyInfo", async (req, res) => {
     let companyLogoUrl = "";
     if (req.body.companyLogo) {
       companyLogoUrl = await uploadCloudinary(req.body.companyLogo);
+      console.log('companyLogoUrl ',companyLogoUrl)
     }
 
     console.log("new company account creation : ", req.body);
-
     const companyInfo = new Companyaccount({
       business_name: req.body.companyNameEN,
       trading_name: req.body.companyNameCN,
@@ -153,6 +153,7 @@ router.post("/createCompanyInfo", async (req, res) => {
       presentorFax: req.body.presentorFax,
       presentorEmail: req.body.presentorEmail,
       currentStage: 1,
+      userId: req.body.userId,
     });
 
     const savedCompanyInfo = await companyInfo.save();
@@ -170,6 +171,7 @@ router.post("/createCompanyInfo", async (req, res) => {
       message: "Company information created successfully!",
       companyId: savedCompanyInfo._id,
     });
+    
   } catch (err) {
     console.error("Error creating company information:", err);
     res.status(500).json({ error: "Server error. Please try again later." });
@@ -468,6 +470,7 @@ router.post("/shareHoldersInfo", async (req, res) => {
       addressProof,
       email,
       phone,
+      countryCode,
       shareRows,
       userId,
       companyId,
@@ -529,6 +532,7 @@ router.post("/shareHoldersInfo", async (req, res) => {
       email,
       isInvited,
       phone,
+      countryCode,
       shareDetails: shareDetails,
       userId: userObjectId,
       companyId: companyObjectId,
@@ -575,8 +579,8 @@ router.put("/updateShareHolder/:id", async (req, res) => {
       addressProof,
       email,
       phone,
-      shareDetailsNoOfShares,
-      shareDetailsClassOfShares,
+      countryCode,
+      shareRows
     } = req.body;
 
     console.log("Updating shareholder:", shareholderId);
@@ -600,6 +604,16 @@ router.put("/updateShareHolder/:id", async (req, res) => {
       addressProofUrl = await uploadCloudinary(addressProof);
     }
 
+
+    const shareDetails = [];
+
+    shareRows.forEach((row, index) => {
+      shareDetails[index] = {
+        shareDetailsNoOfShares: row.unpaidAmount,
+        shareDetailsClassOfShares: row.shareClass,
+      };
+    });
+
     // Update the shareholder
     const updatedShareholder = await ShareholderInfo.findByIdAndUpdate(
       shareholderId,
@@ -617,8 +631,8 @@ router.put("/updateShareHolder/:id", async (req, res) => {
         addressProof: addressProofUrl,
         email,
         phone,
-        shareDetailsNoOfShares,
-        shareDetailsClassOfShares,
+        countryCode,
+        shareDetails: shareDetails,
       },
       { new: true }
     );
@@ -639,11 +653,11 @@ router.post("/invateShare", async (req, res) => {
     const {
       name,
       email,
-      classOfShares,
-      noOfShares,
+      password,
+      shareDetails,
+      shareRows,
       userId,
       companyId,
-      password,
     } = req.body;
 
     console.log("Received data:", req.body);
@@ -651,8 +665,6 @@ router.post("/invateShare", async (req, res) => {
     if (
       !name ||
       !email ||
-      !classOfShares ||
-      !noOfShares ||
       !userId ||
       !companyId
     ) {
@@ -660,13 +672,20 @@ router.post("/invateShare", async (req, res) => {
     }
     const roles = "Shareholder";
 
+    const shares = [];
+    shareRows.forEach((row, index) => {
+      shares[index] = {
+        shareDetailsNoOfShares: row.unpaidAmount,
+        shareDetailsClassOfShares: row.shareClass,
+      };
+    });
+
     const inviteShareHolders = new invateShareHolder({
       name,
       password,
       email,
-      classOfShares,
+      shareDetails: shares,
       roles,
-      noOfShares,
       userId: mongoose.Types.ObjectId(userId),
       companyId: mongoose.Types.ObjectId(companyId),
     });
@@ -675,8 +694,11 @@ router.post("/invateShare", async (req, res) => {
       process.env.SECRET_KEY || "Token",
       { expiresIn: "1h" }
     );
+    
     const inviteUrl = `${process.env.FRONTEND_URL}/project-form?tab=1&token=${inviteToken}&companyId=${companyId}&isInvited=true`;
 
+    let classOfShares = shares.map(row => row.shareClass).join(", ");
+    let noOfShares = shares.map(row => row.unpaidAmount).join(", ");
     await inviteShareHolders.save();
     console.log("inviteShareHolders", inviteShareHolders);
     await sendShareInvitationEmail(
@@ -956,12 +978,11 @@ router.post("/directorInfoCreation", async (req, res) => {
       addressProof,
       email,
       phone,
+      countryCode,
       userId,
       isInvited,
       companyId,
     } = req.body;
-
-    console.log("Received data:", req.body);
 
     if (
       !name ||
@@ -1000,6 +1021,7 @@ router.post("/directorInfoCreation", async (req, res) => {
       addressProof: addressProofUrl,
       email,
       phone,
+      countryCode,
       userId: mongoose.Types.ObjectId(userId),
       companyId: mongoose.Types.ObjectId(companyId),
     });
@@ -1037,6 +1059,7 @@ router.put("/updateDirector/:id", async (req, res) => {
       addressProof,
       email,
       phone,
+      countryCode,
     } = req.body;
 
     console.log("Updating director:", directorId);
@@ -1077,6 +1100,7 @@ router.put("/updateDirector/:id", async (req, res) => {
         addressProof: addressProofUrl,
         email,
         phone,
+        countryCode,
       },
       { new: true }
     );
@@ -1284,6 +1308,7 @@ router.post("/companySecretary", async (req, res) => {
       addressProof,
       email,
       phone,
+      countryCode,
       userId,
       companyId,
       idNo,
@@ -1328,6 +1353,7 @@ router.post("/companySecretary", async (req, res) => {
       addressProof: addressProofUrl,
       email,
       phone,
+      countryCode,
       idNo,
       companyNo,
       userId: mongoose.Types.ObjectId(userId),

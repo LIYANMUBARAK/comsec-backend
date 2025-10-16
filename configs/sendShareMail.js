@@ -28,8 +28,8 @@ function sendShareInvitationEmail(email, name, classOfShares, noOfShares, compan
             </ul>
             <p>These are your following credentials:</p>
             <ul>
-                <li><strong>Class of Shares:</strong> ${email}</li>
-                <li><strong>Number of Shares:</strong> ${password}</li>
+                <li><strong>Email:</strong> ${email}</li>
+                <li><strong>Password:</strong> ${password}</li>
             </ul>
             <p>Click the button below to accept the invitation:</p>
             <p style="text-align:center;">

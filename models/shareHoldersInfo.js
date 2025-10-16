@@ -54,6 +54,10 @@ const shareholdersInfoSchema = new Schema(
     phone: {
       type: String
     },
+    countryCode: {
+      type: String,
+      default: "+91"
+    },
     shareDetails:[
       {
         shareDetailsNoOfShares: {
