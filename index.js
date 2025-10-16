@@ -27,7 +27,6 @@ connectDB()
 const server = http.createServer(app);
 
 
-
 // Middleware
 app.use(logger("dev"));
 app.use(express.json({ limit: '10mb' }));
@@ -58,6 +57,7 @@ app.use("/project", project);
 app.use((req, res, next) => {
   next(createError(404));
 });
+
 app.get('/test', (req, res) => {
   console.log("for backend init")
   res.send('Hello, this is a message from the backend!');

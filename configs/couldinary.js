@@ -1,3 +1,5 @@
+const dotenv = require("dotenv");
+dotenv.config();
 const cloudinary = require('cloudinary').v2;
 const EMAIL_USER = process.env.EMAIL_USER;
 const EMAIL_PASS = process.env.EMAIL_USER;

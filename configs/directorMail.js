@@ -30,7 +30,7 @@ function sendDirectorInvitationEmail(email, name, classOfShares, noOfShares,pass
             <p style="text-align:center;">
                 <a href="${inviteUrl}" style="display: inline-block; background-color: black; color: white; 
                 font-size: 14px; font-weight: bold; text-decoration: none; 
-                padding: 12px 24px; border-radius: 6px;">Go to Forms</a>
+                padding: 12px 24px; border-radius: 6px;">Login now</a>
             </p>
             <p>Best Regards,<br>COMSEC360 Team</p>
         `,

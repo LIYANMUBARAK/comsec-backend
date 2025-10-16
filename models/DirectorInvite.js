@@ -9,6 +9,7 @@ const directorInviteSchema = new mongoose.Schema({
    noOfShares: { type: Number }, 
    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
    companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Companyaccount', required: true }, 
+   status: { type: String, enum: ['pending', 'accepted', 'declined'], default: 'pending' },
  }, { timestamps: true });
 
 module.exports = mongoose.model("DirectorInvite", directorInviteSchema);

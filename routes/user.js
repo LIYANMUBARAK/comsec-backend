@@ -125,7 +125,7 @@ router.post("/login", async (req, res) => {
     }
 
     // Check User Collection First
-    let user = await User.findOne({ email });
+    let user = await User.findOne({ email: email });
     console.log("User data in login:", user);
 
     if (user && (await bcrypt.compare(password, user.password))) {
@@ -415,8 +415,6 @@ router.post("/resendCode", async (req, res) => {
 router.post("/inviteUser", async (req, res) => {
   try {
     const { firstName, lastName, email, password } = req.body;
-
-    console.log(req.body)
 
     if (!firstName || !lastName || !email || !password) {
       return res.status(400).json({ message: "All fields are required." });

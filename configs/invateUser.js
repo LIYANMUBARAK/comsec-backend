@@ -48,6 +48,9 @@
 
 // module.exports = { sendUserInvitationEmail };
 
+const dotenv = require("dotenv");
+dotenv.config();
+
 const EmailTemplate = require('../models/email_templates');
 const nodemailer = require("nodemailer");
 const handlebars = require("handlebars");

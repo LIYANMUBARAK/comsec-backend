@@ -20,7 +20,7 @@ const shareholdersInfoSchema = new Schema(
     NNC1From: { type: String },
     idProof: {
       type: String,
-      required: true,
+      // required: true,
     },
     userType: {
       type: String,
@@ -54,14 +54,16 @@ const shareholdersInfoSchema = new Schema(
     phone: {
       type: String
     },
-    shareDetailsNoOfShares: {
-      type: Number,
-      required: true,
-    },
-    shareDetailsClassOfShares: {
-      type: String,
-      required: true,
-    },
+    shareDetails:[
+      {
+        shareDetailsNoOfShares: {
+          type: Number,
+        },
+        shareDetailsClassOfShares: {
+          type: String,
+        },
+      }
+    ],
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
